@@ -5,6 +5,7 @@ import subprocess
 import re
 
 def diskUsage():
+    """This method get the Disk Usage"""
 
     output = subprocess.run("df --total |grep total", shell=True, stdout=subprocess.PIPE,)
     index = 0
