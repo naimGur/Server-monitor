@@ -1,2 +1,2 @@
 # Server-monitor
-Server monitor via TCP using Python
+Server monitor via TCP using Python3

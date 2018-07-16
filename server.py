@@ -1,5 +1,6 @@
 import socket
 import sys
+import json
 
 def Main():
 	host = '192.168.15.141'
@@ -16,17 +17,17 @@ def Main():
 
 	while True:
 		try:
-		    data = c.recv(1024).decode()
+			data = c.recv(1024).decode()
 		except:
-		    sys.exit ("Data could not be recieved 'data = c.recv(1024).decode()'")
+			sys.exit ("Data could not be recieved 'data = c.recv(1024).decode()'")
 		if not data:
-		    print("no data")
-		    break
+			print("no data")
+			break
 		print("from connected user: " + str(data))
 		try:
-		    c.send(data.encode())
+			c.send(data.encode())
 		except:
-		    sys.exit("Data could not be sent 'c.send(data.encode())'")
+			sys.exit("Data could not be sent 'c.send(data.encode())'")
 	c.close()
 
 
