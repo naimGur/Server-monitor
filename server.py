@@ -12,11 +12,11 @@ def getConfig():
     configData = [host,port]
     return configData
 
-def Main():
-	host = getConfig()[0]
-	port = getConfig()[1]
 
+host = getConfig()[0]
+port = getConfig()[1]
 
+while True:
 	s = socket.socket()
 	s.bind((host, int(port)))
 
@@ -41,6 +41,3 @@ def Main():
 			sys.exit("Data could not be sent 'c.send(data.encode())'")
 	c.close()
 
-
-if __name__ == '__main__':
-	Main()

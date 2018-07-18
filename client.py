@@ -7,14 +7,12 @@ import configparser
 import json
 import os                                   # yine bad smell için sor hem subp hem os
 
-open('partitions.ini', 'w').close()
-os.system("date >> partitions.ini")
-os.system("df -h |grep /dev/sd >> partitions.ini")
+
+
 
 def diskUsage():
-    file = open("partitions.ini", "r")
-
-    data = file.read().split()
+    p = os.popen('df -h |grep /dev/sd')
+    data = str(p.read()).split()
     index = 0
     a = 0
     devindex = 0
@@ -64,9 +62,18 @@ def getConfig():
 
 def Main():
 
-    host = getConfig()[0]
-    port = getConfig()[1]
-    renew_time = getConfig()[2]
+
+    try:
+        host = getConfig()[0]
+        port = getConfig()[1]
+        renew_time = getConfig()[2]
+    except configparser.MissingSectionHeaderError:
+        print("Configde Sectionlardan biri yok.")
+        raise SystemExit
+    except Exception as e:
+        print("Config okunurken hata!")
+        print(str(e))
+        raise SystemExit
 
 
     s = socket.socket()
@@ -74,7 +81,7 @@ def Main():
     try:
         s.connect((host, int(port)))
     except:
-        sys.exit ("connection error: (s.connect((host,port))")
+        sys.exit("connection error: (s.connect((host,port))")
 
     devcount = -1
     devindex = 0
@@ -84,7 +91,7 @@ def Main():
             break
         else:
             devcount+=1
-    print(devcount)
+
 # database operations
 
     while True:
@@ -99,8 +106,6 @@ def Main():
 
         jsondata = json.dumps(data)
 
-        with open("data_file", "w") as write_file:
-            json.dump(data, write_file)
 
 
         try:
