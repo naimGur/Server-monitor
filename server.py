@@ -1,13 +1,24 @@
 import socket
 import sys
 import json
+import configparser
+
+def getConfig():
+    config = configparser.ConfigParser()
+    config.sections()
+    config.read('config.ini')
+    host = config['DEFAULT']['Ip Address']
+    port = config['DEFAULT']['Port']
+    configData = [host,port]
+    return configData
 
 def Main():
-	host = '192.168.15.141'
-	port = 5000
+	host = getConfig()[0]
+	port = getConfig()[1]
+
 
 	s = socket.socket()
-	s.bind((host, port))
+	s.bind((host, int(port)))
 
 	s.listen(1)
 	print("listening...")

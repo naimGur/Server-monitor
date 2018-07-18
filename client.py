@@ -7,26 +7,47 @@ import configparser
 import json
 import os                                   # yine bad smell için sor hem subp hem os
 
-def diskUsage():
-    """This method gets the Disk Usage"""
-    os.system("date >> partitions.ini")
-    os.system("df -h |grep /dev/sd >> partitions.ini")
-    #output = subprocess.run("df -h |grep dev/sd", shell=True, stdout=subprocess.PIPE,)
-    file = open("partitions.ini", "r")
-    index = 0
-    data = str
-    bufferreader = file.read()
-    while True:
-        data = bufferreader.split(" ")
-        #data = str(output.stdout).split(" ")
-        if re.match('/dev/sd',data[index]):
-            print(data[index])
-        if re.match('\d{0,3}\%', str(data[index])):
-            break
-        else:
-            index+=1
+open('partitions.ini', 'w').close()
+os.system("date >> partitions.ini")
+os.system("df -h |grep /dev/sd >> partitions.ini")
 
-    return data[index]
+def diskUsage():
+    file = open("partitions.ini", "r")
+
+    data = file.read().split()
+    index = 0
+    a = 0
+    devindex = 0
+    useindex = 0
+    hold = [[0] * 2 for _ in range(10)]
+
+    while True:
+        try:
+            if data[index]:
+                index += 1
+            else:
+                index -= 1
+                break
+        except:
+            index -= 1
+            break
+
+    while a != index:
+
+        if re.match('/dev/sd', data[a]):
+            hold[devindex][useindex] = data[a]
+            useindex += 1
+
+            a += 1
+        elif re.match('\d{0,3}\%', data[a]):
+            hold[devindex][useindex] = data[a]
+            useindex -= 1
+            devindex += 1
+            a += 1
+        else:
+
+            a += 1
+    return(hold)
 
 
 def getConfig():
@@ -55,14 +76,26 @@ def Main():
     except:
         sys.exit ("connection error: (s.connect((host,port))")
 
-
-    # database operations
+    devcount = -1
+    devindex = 0
+    useindex = 0
+    while True:
+        if diskUsage()[devcount+1][0]==0:
+            break
+        else:
+            devcount+=1
+    print(devcount)
+# database operations
 
     while True:
+        if devindex > devcount:
+            devindex = 0
+
         data = {
-            "disk": "disk usage",
-            "value": diskUsage()
+            "disk": diskUsage()[devindex][0],
+            "usage": diskUsage()[devindex][1]
         }
+        devindex += 1
 
         jsondata = json.dumps(data)
 
@@ -91,5 +124,3 @@ if __name__ == '__main__':
     Main()
 
     #servis nedir? Bir programi servisten ayiran nedir?
-    #UDP daha iyi olur mu? Yoksa onun yerine gonderilen
-    #ve gelen veriyi veri tabanina mi kaydetmek iyi?
