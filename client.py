@@ -5,48 +5,17 @@ import subprocess
 import re
 import configparser
 import json
-import os                                   # yine bad smell için sor hem subp hem os
-
-
+import os
 
 
 def diskUsage():
-    p = os.popen('df -h |grep /dev/sd')
-    data = str(p.read()).split()
-    index = 0
-    a = 0
-    devindex = 0
-    useindex = 0
-    hold = [[0] * 2 for _ in range(10)]
-
-    while True:
-        try:
-            if data[index]:
-                index += 1
-            else:
-                index -= 1
-                break
-        except:
-            index -= 1
-            break
-
-    while a != index:
-
-        if re.match('/dev/sd', data[a]):
-            hold[devindex][useindex] = data[a]
-            useindex += 1
-
-            a += 1
-        elif re.match('\d{0,3}\%', data[a]):
-            hold[devindex][useindex] = data[a]
-            useindex -= 1
-            devindex += 1
-            a += 1
-        else:
-
-            a += 1
-    return(hold)
-
+    p = os.popen('df -h | grep /dev/sd')
+    p_lines = p.read().split('\n')
+    disks = {}
+    for i in p_lines:
+        if len(i) > 0:
+            disks[i.split()[0]] = i.split()[4]
+    return disks
 
 def getConfig():
     config = configparser.ConfigParser()
@@ -54,19 +23,38 @@ def getConfig():
     config.read('config.ini')
     host = config['DEFAULT']['Ip Address']
     port = config['DEFAULT']['Port']
-    renew_time = config['DEFAULT']['Renew Period']
+    renew_time = config['DEFAULT']['Renew_Period']
     configData = [host,port,renew_time]
     return configData
 # bad smell icin sor
 
 
+def getmodify():
+    modify = str(os.popen('stat config.ini | grep Modify').read())
+    modified = str(modify.split()[2].split(":")[0] +":"+ modify.split()[2].split(":")[1])
+    joinedmodify = str(modify.split()[1] +" "+ modified + " " + modify.split()[3])
+    return joinedmodify
+
+def send_message(message, host, port):
+    s = socket.socket()
+    s.connect((host, int(port)))
+    s.send(message.encode())
+
+    data = ''
+
+    data = s.recv(1024).decode()
+    s.close()
+    return data
+
+
 def Main():
+
 
 
     try:
         host = getConfig()[0]
         port = getConfig()[1]
-        renew_time = getConfig()[2]
+
     except configparser.MissingSectionHeaderError:
         print("Configde Sectionlardan biri yok.")
         raise SystemExit
@@ -76,56 +64,70 @@ def Main():
         raise SystemExit
 
 
-    s = socket.socket()
+    # s = socket.socket()
 
-    try:
-        s.connect((host, int(port)))
-    except:
-        sys.exit("connection error: (s.connect((host,port))")
+    # try:
+    #     s.connect((host, int(port)))
+    # except:
+    #     sys.exit("connection error: (s.connect((host,port))")
 
-    devcount = -1
-    devindex = 0
-    useindex = 0
-    while True:
-        if diskUsage()[devcount+1][0]==0:
-            break
-        else:
-            devcount+=1
+
 
 # database operations
 
     while True:
-        if devindex > devcount:
-            devindex = 0
 
-        data = {
-            "disk": diskUsage()[devindex][0],
-            "usage": diskUsage()[devindex][1]
-        }
-        devindex += 1
+        # s = socket.socket()
+        # try:
+        #     s.connect((host, int(port)))
+        #     connection_status = 1
+        # except:
+        #     print("Error while connecting")
+        #     connection_status = 0
+        #     time.sleep(5)
 
-        jsondata = json.dumps(data)
+        connection_status = 1
+        if connection_status:
 
+            renew_time = getConfig()[2]
+            joinedmodify = getmodify()
 
+            disk_usage = diskUsage()
 
-        try:
-            s.send(jsondata.encode())
-        except:
-            sys.exit("Data send error 's.send(jsondata)'")
+            jsondata = json.dumps(disk_usage)
 
+            try:
+                data = send_message(jsondata, '94.103.47.87', 5000)
+                # s.send(jsondata.encode())
+            except:
+                sys.exit("Data send error 's.send(jsondata)'")
 
-        try:
-            data = s.recv(1024).decode()
-        except:
-            print("No response data (data = s.recv(1024))")
+            # try:
+            #     data = s.recv(1024).decode()
+            # except:
+            #     print("No response data (data = s.recv(1024))")
 
+            print('kendi hesaplamasi   : ' + joinedmodify)
+            print("+++++++++++++++++   : " + str(data)+ "\n\n")
+            if str(data) != str(joinedmodify):
+                print("Sending MODIFIED")
+                # s.send("MODIFIED".encode())
+                modified_data = send_message('MODIFIED', '94.103.47.87', 5000)
+                print("MODIFIED sent")
+            if str(modified_data).split()[0] == "[DEFAULT]":
+                print("default aliniyor\n---------")
+                print(modified_data)
+                with open("config.ini","wb") as f:
+                    f.write(modified_data.encode())
+                    print("done new thing")
+                f.close()
 
-        print('Received from server: ' + str(data))
-        time.sleep(float(renew_time))
+            time.sleep(float(renew_time))
 
     s.close()
+
 
 if __name__ == '__main__':
     Main()
 
-    #servis nedir? Bir programi servisten ayiran nedir?
+#servis nedir? Bir programi servisten ayiran nedir?
